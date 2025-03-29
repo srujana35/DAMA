@@ -99,7 +99,7 @@ def layer_stats(
         raw_ds = load_dataset(
             ds_name,
             dict(wikitext="wikitext-103-raw-v1", wikipedia="20220301.en")[ds_name],
-            download_mode="force_redownload"
+            download_mode="force_redownload", split="train[:10%]"
         )
         maxlen = model.config.max_position_embeddings
         if batch_tokens is not None and batch_tokens < maxlen:
