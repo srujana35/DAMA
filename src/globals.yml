@@ -6,7 +6,7 @@
   OUTPUT_DIR: "../../../paper_output"
 
   # Data files
-  DATA_DIR: "../../data"
+  DATA_DIR: "../data"
   STATS_DIR: "../../data/stats"
 
 
@@ -14,7 +14,7 @@
   MODEL_DIR: "../../models"
 
   # Hyperparameters
-  HPARAMS_DIR: "../../hparams"
+  HPARAMS_DIR: "../hparams"
 
   # Remote URLs
   REMOTE_ROOT_URL: None

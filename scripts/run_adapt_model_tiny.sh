@@ -1,0 +1,1 @@
+python adapt_model.py --model_name "HuggingFaceM4/tiny-random-LlamaForCausalLM" --method "DAMA" --request_file "train_dama_tiny.json" --num_layers 2  --post_linear True --iterative_update True --random_seed 45

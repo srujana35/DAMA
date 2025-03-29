@@ -153,7 +153,8 @@ def get_model_tokenizer(model_name, param_number, compare_against=False):
         model_path = model_name
         model_name = "llama_tiny"
         # For debugging purposes
-        tokenizer_path = os.path.join(MODEL_DIR, "llama_7B")
+        # tokenizer_path = os.path.join(MODEL_DIR, "llama_7B")
+        tokenizer_path = model_path
     else:
         model_path = model_name
         tokenizer_path = model_name
