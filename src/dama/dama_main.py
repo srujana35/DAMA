@@ -461,7 +461,9 @@ def execute_dama(
             
             pls = PLSRegression(n_components=hparams.nullspace_dimension, scale=False, tol=1e-4, max_iter=500, copy=False)
             start_t = time.time()
-            pls.fit(H_left, H_right)
+            H_left_np = H_left.detach().cpu().numpy()
+            H_right_np = H_right.detach().cpu().numpy()
+            pls.fit(H_left_np, H_right_np)
             print(f"PLS took {(time.time()- start_t)/60.:.2f} minutes")
             print("Computing nullspace projection...")
             start_t = time.time()
@@ -612,4 +614,3 @@ def get_context_templates(model, tok, length_params):
         print(f"Cached context templates {CONTEXT_TEMPLATES_CACHE}")
 
     return CONTEXT_TEMPLATES_CACHE
-

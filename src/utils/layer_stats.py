@@ -104,7 +104,7 @@ def layer_stats(
         maxlen = model.config.max_position_embeddings
         if batch_tokens is not None and batch_tokens < maxlen:
             maxlen = batch_tokens
-        return TokenizedDataset(raw_ds["train"], tokenizer, maxlen=maxlen)
+        return TokenizedDataset(raw_ds, tokenizer, maxlen=maxlen)
 
     # Continue with computation of statistics
     batch_size = 100  # Examine this many dataset texts at once
