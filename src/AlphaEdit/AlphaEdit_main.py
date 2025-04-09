@@ -109,19 +109,21 @@ def apply_AlphaEdit_to_model(
 
         # Get current model activations
         layer_ks = compute_ks(model, tok, requests, hparams, layer, context_templates).T
+        # layer_ks = compute_bias_vectors(model, tok, bias_examples, hparams, layer, context_templates).T
         print(f"Writing {layer_ks.size(1)} key/value pair(s) into layer {layer}")
 
         # Compute residual error
-        cur_zs = get_module_input_output_at_words(
-            model,
-            tok,
-            z_layer,
-            context_templates=[request["prompt"] for request in requests],
-            words=[request["subject"] for request in requests],
-            module_template=hparams.layer_module_tmp,
-            fact_token_strategy=hparams.fact_token,
-        )[1].T
-        targets = zs - cur_zs
+        # cur_zs = get_module_input_output_at_words(
+        #     model,
+        #     tok,
+        #     z_layer,
+        #     context_templates=[request["prompt"] for request in requests],
+        #     words=[request["subject"] for request in requests],
+        #     module_template=hparams.layer_module_tmp,
+        #     fact_token_strategy=hparams.fact_token,
+        # )[1].T
+        # targets = zs - cur_zs
+        # targets = compute_bias_residuals(model, tok, bias_examples, neutral_examples, hparams, layer, context_templates)
         print("z error", torch.linalg.norm(targets, dim=0).mean())
 
         repeat_factor = (layer_ks.size(1) // targets.size(1))
@@ -136,7 +138,7 @@ def apply_AlphaEdit_to_model(
         print("orig norm", torch.linalg.norm(weights[weight_name]))
         print("upd norm", torch.linalg.norm(upd_matrix))
         with torch.no_grad():
-            weights[weight_name][...] = weights[weight_name] + upd_matrix
+            weights[weight_name][...] = weights[weight_name] - upd_matrix
         # Clear GPU memory
         #del U,S,cov
         for x in [layer_ks, cur_zs, targets, upd_matrix]:
