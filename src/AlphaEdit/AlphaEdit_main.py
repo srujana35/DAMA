@@ -108,22 +108,25 @@ def apply_AlphaEdit_to_model(
         print(f"\n\nLAYER {layer}\n")
 
         # Get current model activations
-        layer_ks = compute_ks(model, tok, requests, hparams, layer, context_templates).T
-        # layer_ks = compute_bias_vectors(model, tok, bias_examples, hparams, layer, context_templates).T
+        bias_examples = [each for each in requests if each['gender_score'] != 0]
+        neutral_examples = [each for each in requests if each['gender_score'] == 0]
+        
+        layer_ks = compute_ks(model, tok, bias_examples, hparams, layer, context_templates).T
+        neutral_ks = compute_ks(model, tok, neutral_examples, hparams, layer, context_templates).T
+        targets = layer_ks - neutral_ks
         print(f"Writing {layer_ks.size(1)} key/value pair(s) into layer {layer}")
 
         # Compute residual error
-        # cur_zs = get_module_input_output_at_words(
-        #     model,
-        #     tok,
-        #     z_layer,
-        #     context_templates=[request["prompt"] for request in requests],
-        #     words=[request["subject"] for request in requests],
-        #     module_template=hparams.layer_module_tmp,
-        #     fact_token_strategy=hparams.fact_token,
-        # )[1].T
+        cur_zs = get_module_input_output_at_words(
+            model,
+            tok,
+            z_layer,
+            context_templates=[request["prompt"] for request in requests],
+            words=[request["subject"] for request in requests],
+            module_template=hparams.layer_module_tmp,
+            fact_token_strategy=hparams.fact_token,
+        )[1].T
         # targets = zs - cur_zs
-        # targets = compute_bias_residuals(model, tok, bias_examples, neutral_examples, hparams, layer, context_templates)
         print("z error", torch.linalg.norm(targets, dim=0).mean())
 
         repeat_factor = (layer_ks.size(1) // targets.size(1))
