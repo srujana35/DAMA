@@ -12,7 +12,7 @@ import random
 from rome import ROMEHyperParams, apply_rome_to_model, execute_rome
 from dama import DAMAHyperParams, apply_dama_to_model, execute_dama
 from AlphaEdit.AlphaEdit_hparams import AlphaEditHyperParams
-from AlphaEdit.AlphaEdit_main import apply_AlphaEdit_to_model, execute_AlphaEdit
+from AlphaEdit.AlphaEdit_main import apply_AlphaEdit_to_model
 from dama_l import DAMALeaceHyperParams
 from dama_l.dama_l_main import apply_dama_l_to_model, execute_dama_l
 from memit import MEMITHyperParams, apply_memit_to_model, execute_memit

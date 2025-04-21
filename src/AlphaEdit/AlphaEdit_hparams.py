@@ -39,4 +39,4 @@ class AlphaEditHyperParams(HyperParams):
 
 # Update strategy
 
-    update_strategy: Literal["random", "neutral", "opposite"]
+    # update_strategy: Literal["random", "neutral", "opposite"]

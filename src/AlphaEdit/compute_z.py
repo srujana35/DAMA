@@ -49,23 +49,23 @@ def compute_z(
     print("Computing right vector (v)")
 
     # Tokenize target into list of int token IDs
-    if hparams.update_strategy == "random":
+    # if hparams.update_strategy == "random":
 
-        request_str = np.random.choice(list(LLAMA_PRONOUNS.values()))
+    #     request_str = np.random.choice(list(LLAMA_PRONOUNS.values()))
 
-    elif hparams.update_strategy == "neutral":
+    # elif hparams.update_strategy == "neutral":
 
-        request_str = LLAMA_PRONOUNS["neut"]
+    #     request_str = LLAMA_PRONOUNS["neut"]
 
-    elif hparams.update_strategy == "opposite":
+    # elif hparams.update_strategy == "opposite":
 
-        request_str = request["target_new"]["str"]
+    #     request_str = request["target_new"]["str"]
 
-    else:
+    # else:
 
-        request_str = None
+    #     request_str = None
 
-        raise ValueError(f"Unknown update strategy: {hparams.update_strategy}")
+    #     raise ValueError(f"Unknown update strategy: {hparams.update_strategy}")
 
     
     target_ids = tok(request["target_new"]["str"], return_tensors="pt").to("cuda")[
