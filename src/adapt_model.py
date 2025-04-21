@@ -11,6 +11,8 @@ import random
 
 from rome import ROMEHyperParams, apply_rome_to_model, execute_rome
 from dama import DAMAHyperParams, apply_dama_to_model, execute_dama
+from AlphaEdit.AlphaEdit_hparams import AlphaEditHyperParams
+from AlphaEdit.AlphaEdit_main import apply_AlphaEdit_to_model, execute_AlphaEdit
 from dama_l import DAMALeaceHyperParams
 from dama_l.dama_l_main import apply_dama_l_to_model, execute_dama_l
 from memit import MEMITHyperParams, apply_memit_to_model, execute_memit
@@ -37,7 +39,12 @@ def apply_method(apply_function,
                                                       low_cpu_mem_usage=True, device_map='auto')
         orig_weights = None
     else:
-        model_new, orig_weights = apply_function(model, tok, requests, hparams, return_orig_weights=True)
+        if apply_function == apply_AlphaEdit_to_model:
+            model_new, _ = apply_AlphaEdit_to_model(
+                model, tok, requests, hparams, cache_template=None, cache_c=None, P=None
+            )
+        else:
+            model_new, orig_weights = apply_function(model, tok, requests, hparams, return_orig_weights=True)
     if saveto:
         print("Saving model to", saveto)
         model_new.save_pretrained(saveto)
@@ -90,6 +97,9 @@ def model_editing(
             model, tok, requests, hparams, copy=False, return_orig_module=True,
             projections_saveto=projections_saveto, projections_loadfrom=projections_loadfrom,
             output_dir=output_dir)
+    elif method == 'ALPHA_EDIT':
+        model_new, orig_weights = apply_method(apply_AlphaEdit_to_model, model, tok, requests, hparams,
+                                               projections_saveto, projections_loadfrom)
     else:
         raise ValueError(f"Unknown method {method}. Choose from: ROME, DAMA")
 
@@ -201,7 +211,7 @@ if __name__ == "__main__":
         if args.save_projections:
             projections_saveto = os.path.join(output_dir, "projections.npy")
 
-    elif args.method in ("MEMIT", "FT"):
+    elif args.method in ("MEMIT", "FT" , "ROME", "ALPHA_EDIT"):
         if args.load_projections:
             projections_loadfrom = output_dir
         if args.save_projections:
@@ -225,6 +235,10 @@ if __name__ == "__main__":
     elif args.method == 'ROME':
         hparams_path = os.path.join(HPARAMS_DIR, args.method, f"{model_name}.json")
         hparams = ROMEHyperParams.from_json(hparams_path)
+    elif args.method == 'ALPHA_EDIT':
+        hparams_path = os.path.join(HPARAMS_DIR, args.method, f"{model_name}.json")
+        hparams = AlphaEditHyperParams.from_json(hparams_path)
+        # hparams = DAMAHyperParams.from_json(hparams_path)
     else:
         raise ValueError(f"Unknown method {args.method}. Choose from: ROME, DAMA")
     print("Loaded from", hparams_path)
