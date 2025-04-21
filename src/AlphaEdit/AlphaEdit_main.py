@@ -7,13 +7,18 @@ import numpy as np
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-from rome.layer_stats import layer_stats
-from util import nethook
-from util.generate import generate_fast
-from util.globals import *
+from utils.layer_stats import layer_stats
+ 
+from utils import nethook
+ 
+from utils.generate import generate_fast
+ 
+from utils.globals import *
 
 from .compute_ks import compute_ks
-from .compute_z import compute_z, get_module_input_output_at_words, find_fact_lookup_idx
+from utils.repr_tools import get_module_input_output_at_words, find_fact_lookup_idx
+ 
+from .compute_z import compute_z
 from .AlphaEdit_hparams import AlphaEditHyperParams
 # Cache variable(s)
 CONTEXT_TEMPLATES_CACHE = None
@@ -54,6 +59,7 @@ def apply_AlphaEdit_to_model(
     }
     # Compute z for final layer
     context_templates = get_context_templates(model, tok)
+    req_contexts = [templ.format(request["prompt"]) for templ in context_templates[0] for request in requests]
     z_layer = hparams.layers[-1]
     z_list = []
 
@@ -112,8 +118,7 @@ def apply_AlphaEdit_to_model(
         neutral_examples = [each for each in requests if each['gender_score'] == 0]
         
         layer_ks = compute_ks(model, tok, bias_examples, hparams, layer, context_templates).T
-        neutral_ks = compute_ks(model, tok, neutral_examples, hparams, layer, context_templates).T
-        targets = layer_ks - neutral_ks
+        # neutral_ks = compute_ks(model, tok, neutral_examples, hparams, layer, context_templates).T
         print(f"Writing {layer_ks.size(1)} key/value pair(s) into layer {layer}")
 
         # Compute residual error
@@ -121,12 +126,12 @@ def apply_AlphaEdit_to_model(
             model,
             tok,
             z_layer,
-            context_templates=[request["prompt"] for request in requests],
+            context_templates=req_contexts,
             words=[request["subject"] for request in requests],
             module_template=hparams.layer_module_tmp,
             fact_token_strategy=hparams.fact_token,
         )[1].T
-        # targets = zs - cur_zs
+        targets = zs - cur_zs
         print("z error", torch.linalg.norm(targets, dim=0).mean())
 
         repeat_factor = (layer_ks.size(1) // targets.size(1))
