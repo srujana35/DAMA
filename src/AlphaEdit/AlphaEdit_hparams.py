@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import List, Literal
 
-from util.hparams import HyperParams
+from utils.hparams import HyperParams
 
 
 @dataclass
@@ -36,3 +36,7 @@ class AlphaEditHyperParams(HyperParams):
     mom2_dtype: str
     nullspace_threshold: float
     L2: float
+
+# Update strategy
+
+    update_strategy: Literal["random", "neutral", "opposite"]
