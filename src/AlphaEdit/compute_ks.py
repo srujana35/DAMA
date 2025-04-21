@@ -4,7 +4,7 @@ import numpy as np
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-from .compute_z import get_module_input_output_at_words
+from utils.repr_tools import  get_module_input_output_at_words
 from .AlphaEdit_hparams import AlphaEditHyperParams
 
 
@@ -16,22 +16,25 @@ def compute_ks(
     layer: int,
     context_templates: List[str],
 ):
+    contexts = [templ.format(request["prompt"]) for request in requests
+
+                for templ_types in context_templates
+
+                for templ in templ_types]
+
+    words = [request["subject"] for request in requests
+
+             for templ_types in context_templates
+
+             for templ in templ_types]
     layer_ks = get_module_input_output_at_words(
         model,
         tok,
-        layer,
-        context_templates=[
-            context.format(request["prompt"])
-            for request in requests
-            for context_type in context_templates
-            for context in context_type
-        ],
-        words=[
-            request["subject"]
-            for request in requests
-            for context_type in context_templates
-            for _ in context_type
-        ],
+        contexts=contexts,
+
+        words=words,
+
+        layer=layer,
         module_template=hparams.rewrite_module_tmp,
         fact_token_strategy=hparams.fact_token,
     )[0]
