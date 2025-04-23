@@ -12,7 +12,9 @@ import random
 from rome import ROMEHyperParams, apply_rome_to_model, execute_rome
 from dama import DAMAHyperParams, apply_dama_to_model, execute_dama
 from AlphaEdit.AlphaEdit_hparams import AlphaEditHyperParams
+from AlphaEdit2.alphaedit2_hparams import AlphaEdit2HyperParams
 from AlphaEdit.AlphaEdit_main import apply_AlphaEdit_to_model
+from AlphaEdit2.alphaedit2_main import apply_alphaedit2_to_model
 from dama_l import DAMALeaceHyperParams
 from dama_l.dama_l_main import apply_dama_l_to_model, execute_dama_l
 from memit import MEMITHyperParams, apply_memit_to_model, execute_memit
@@ -26,6 +28,20 @@ from utils.model_utils import *
 import argparse
 import sys
 
+
+def load_projection_matrices(projections_path: str, hparams) -> Dict[int, torch.Tensor]:
+    """
+    Loads projection matrices saved as P_{i}.npy for each layer in hparams.
+    Returns: Dictionary mapping layer index (int) → torch.Tensor of shape [d, d]
+    """
+    P = {}
+    for i, layer in enumerate(hparams.layers):
+        path = os.path.join(projections_path, f"P_{i}.npy")
+        if not os.path.exists(path):
+            raise FileNotFoundError(f"Missing projection matrix at: {path}")
+        P[layer] = torch.from_numpy(np.load(path)).float()
+        print(f"Loaded P[{layer}] from {path} with shape {P[layer].shape}")
+    return P
 
 def apply_method(apply_function,
                     model: AutoModelForCausalLM,
@@ -43,10 +59,17 @@ def apply_method(apply_function,
             model_new, _ = apply_AlphaEdit_to_model(
                 model, tok, requests, hparams, cache_template=None, cache_c=None, P=None
             )
+        elif apply_function == apply_alphaedit2_to_model:
+            # ✅ Load or create projection matrices here
+            P = load_projection_matrices("projections",hparams)  # You’ll need to define this
+            model_new, orig_weights = apply_alphaedit2_to_model(
+                model, tok, requests, hparams, P, return_orig_weights=True
+            )
         else:
             model_new, orig_weights = apply_function(model, tok, requests, hparams, return_orig_weights=True)
     if saveto:
         print("Saving model to", saveto)
+        model.generation_config.pad_token_id = tok.eos_token_id
         model_new.save_pretrained(saveto)
     return model_new, orig_weights
 
@@ -99,6 +122,9 @@ def model_editing(
             output_dir=output_dir)
     elif method == 'ALPHA_EDIT':
         model_new, orig_weights = apply_method(apply_AlphaEdit_to_model, model, tok, requests, hparams,
+                                               projections_saveto, projections_loadfrom)
+    elif method == 'ALPHA_EDIT2':
+        model_new, orig_weights = apply_method(apply_alphaedit2_to_model, model, tok, requests, hparams,
                                                projections_saveto, projections_loadfrom)
     else:
         raise ValueError(f"Unknown method {method}. Choose from: ROME, DAMA")
@@ -239,6 +265,9 @@ if __name__ == "__main__":
         hparams_path = os.path.join(HPARAMS_DIR, args.method, f"{model_name}.json")
         hparams = AlphaEditHyperParams.from_json(hparams_path)
         # hparams = DAMAHyperParams.from_json(hparams_path)
+    elif args.method == 'ALPHA_EDIT2':
+        hparams_path = os.path.join(HPARAMS_DIR, args.method, f"{model_name}.json")
+        hparams = AlphaEdit2HyperParams.from_json(hparams_path)
     else:
         raise ValueError(f"Unknown method {args.method}. Choose from: ROME, DAMA")
     print("Loaded from", hparams_path)

@@ -22,6 +22,8 @@ from .memit_hparams import MEMITHyperParams
 CONTEXT_TEMPLATES_CACHE = None
 COV_CACHE = {}
 
+device = "cuda" if torch.cuda.is_available() else "cpu"
+
 
 def apply_memit_to_model(
     model: AutoModelForCausalLM,
@@ -215,6 +217,9 @@ def execute_memit(
 
         # Update model weights and record desired changes in `delta` variable
         with torch.no_grad():
+            weights[weight_name] = weights[weight_name].to(device)
+            upd_matrix = upd_matrix.to(device)
+            weights_copy[weight_name] = weights_copy[weight_name].to(device)
             weights[weight_name][...] = weights_copy[weight_name] + upd_matrix.float()
             deltas[weight_name] = (
                 adj_k.detach().cpu(),

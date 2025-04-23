@@ -7,7 +7,7 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 from utils import repr_tools
 from utils import nethook
 
-from .memit_hparams import MEMITHyperParams
+from .alphaedit2_hparams import AlphaEdit2HyperParams
 from utils.repr_tools import get_module_input_output_at_words, find_fact_lookup_idx
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -19,7 +19,7 @@ def compute_z(
     model: AutoModelForCausalLM,
     tok: AutoTokenizer,
     request: Dict,
-    hparams: MEMITHyperParams,
+    hparams: AlphaEdit2HyperParams,
     layer: int,
     context_templates: List[str],
 ) -> Tuple[torch.Tensor, torch.Tensor]:

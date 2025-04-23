@@ -151,7 +151,8 @@ def layer_stats(
         collate_fn=length_collation(batch_tokens),
         pin_memory=True,
         random_sample=1,
-        num_workers=2,
+        ##only for local otherwise 2
+        num_workers=0,
     )
     batch_count = -(-(sample_size or len(ds)) // batch_size)
     with torch.no_grad():

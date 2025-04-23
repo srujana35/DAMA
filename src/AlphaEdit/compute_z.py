@@ -14,7 +14,7 @@ from utils.repr_tools import get_module_input_output_at_words, find_fact_lookup_
 
 
 
-
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 LLAMA_PRONOUNS = {"pos": "he",
 
@@ -68,9 +68,7 @@ def compute_z(
     #     raise ValueError(f"Unknown update strategy: {hparams.update_strategy}")
 
     
-    target_ids = tok(request["target_new"]["str"], return_tensors="pt").to("cuda")[
-        "input_ids"
-    ][0]
+    target_ids = tok(request["target_new"]["str"], return_tensors="pt").to(device)["input_ids"][0]
 
     if target_ids[0] == tok.bos_token_id or target_ids[0] == tok.unk_token_id:
         target_ids = target_ids[1:]
@@ -87,10 +85,10 @@ def compute_z(
         return_tensors="pt",
         padding=True,
         return_token_type_ids=False
-    ).to("cuda")
+    ).to(device)
 
     # Compute rewriting targets
-    rewriting_targets = torch.tensor(-100, device="cuda").repeat(
+    rewriting_targets = torch.tensor(-100, device=device).repeat(
         len(rewriting_prompts), *input_tok["input_ids"].shape[1:]
     )
     for i in range(len(rewriting_prompts)):
@@ -114,9 +112,9 @@ def compute_z(
     # rewrite layer, i.e. hypothesized fact lookup location, will induce the
     # target token to be predicted at the final layer.
     if hasattr(model.config, 'n_embd'):
-        delta = torch.zeros((model.config.n_embd,), requires_grad=True, device="cuda")
+        delta = torch.zeros((model.config.n_embd,), requires_grad=True, device=device)
     elif hasattr(model.config, 'hidden_size'):
-        delta = torch.zeros((model.config.hidden_size,), requires_grad=True, device="cuda")
+        delta = torch.zeros((model.config.hidden_size,), requires_grad=True, device=device)
     else:
         raise NotImplementedError
     target_init, kl_distr_init = None, None
@@ -161,6 +159,7 @@ def compute_z(
             retain_output=True,
             edit_output=edit_output_fn,
         ) as tr:
+            model = model.to(device)
             logits = model(**input_tok).logits
 
             # Compute distribution for KL divergence
