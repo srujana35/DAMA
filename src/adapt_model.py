@@ -25,6 +25,8 @@ from utils import nethook
 from utils.globals import *
 from utils.model_utils import *
 
+from AlphaEdit.AlphaEdit_main import get_cov
+
 import argparse
 import sys
 
@@ -47,7 +49,7 @@ def apply_method(apply_function,
                     model: AutoModelForCausalLM,
                     tok: AutoTokenizer,
                     requests: List[Dict],
-                    hparams: ROMEHyperParams | DAMAHyperParams,
+                    hparams: ROMEHyperParams | DAMAHyperParams | AlphaEditHyperParams | AlphaEdit2HyperParams,
                     saveto=None, loadrom=None):
     if loadrom:
         print("Loading model from", loadrom)
@@ -56,11 +58,19 @@ def apply_method(apply_function,
         orig_weights = None
     else:
         if apply_function == apply_AlphaEdit_to_model:
+            # Load or create projection matrices here
+            W_out = nethook.get_parameter(model, f"{hparams.rewrite_module_tmp.format(hparams.layers[-1])}.weight")
+            cache_c = torch.zeros((len(hparams.layers), W_out.shape[1], W_out.shape[1]), device="cpu")
+            P = torch.zeros((len(hparams.layers), W_out.shape[1], W_out.shape[1]), device="cpu")
+            for i, layer in enumerate(hparams.layers):
+                P[i, :, :] = get_project(model,tok,layer,hparams)
+            torch.save(P, "null_space_project.pt")
+
             model_new, _ = apply_AlphaEdit_to_model(
-                model, tok, requests, hparams, cache_template=None, cache_c=None, P=None
+                model, tok, requests, hparams, cache_template=None, cache_c=cache_c, P=P
             )
         elif apply_function == apply_alphaedit2_to_model:
-            # ✅ Load or create projection matrices here
+            # Load or create projection matrices here
             P = load_projection_matrices("projections",hparams)  # You’ll need to define this
             model_new, orig_weights = apply_alphaedit2_to_model(
                 model, tok, requests, hparams, P, return_orig_weights=True
@@ -73,6 +83,24 @@ def apply_method(apply_function,
         model_new.save_pretrained(saveto)
     return model_new, orig_weights
 
+def get_project(model, tok, layer, hparams):
+    force_recompute = False
+    cov = get_cov(
+        model,
+        tok,
+        hparams.rewrite_module_tmp.format(layer),
+        hparams.mom2_dataset,
+        hparams.mom2_n_samples
+        if not force_recompute
+        else hparams.mom2_n_samples // 10,
+        hparams.mom2_dtype,
+        force_recompute=force_recompute,
+    ).cpu()
+    U, S, _ = torch.linalg.svd(cov, full_matrices=False)
+    threshold = hparams.nullspace_threshold
+    small_singular_indices = (S < threshold).nonzero(as_tuple=True)[0]
+    print(len(small_singular_indices))
+    return U[:, small_singular_indices] @ U[:, small_singular_indices].T
 
 def model_editing(
     model: AutoModelForCausalLM,
