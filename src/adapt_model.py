@@ -92,7 +92,7 @@ def get_project(model, tok, layer, hparams):
         hparams.mom2_dataset,
         hparams.mom2_n_samples
         if not force_recompute
-        else hparams.mom2_n_samples // 10,
+        else hparams.mom2_n_samples // 1000,
         hparams.mom2_dtype,
         force_recompute=force_recompute,
     ).cpu()
