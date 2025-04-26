@@ -16,10 +16,8 @@ from utils.generate import generate_fast
 from utils.globals import *
 
 from .compute_ks import compute_ks
-# from utils.repr_tools import get_module_input_output_at_words, find_fact_lookup_idx
-from .compute_z import get_module_input_output_at_words
  
-from .compute_z import compute_z
+from .compute_z import compute_z, get_module_input_output_at_words
 from .AlphaEdit_hparams import AlphaEditHyperParams
 # Cache variable(s)
 CONTEXT_TEMPLATES_CACHE = None
