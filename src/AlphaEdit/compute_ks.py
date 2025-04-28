@@ -16,6 +16,7 @@ def compute_ks(
     layer: int,
     context_templates: List[str],
 ):
+    print(context_templates)
     contexts = [templ.format(request["prompt"]) for request in requests
 
                 for templ_types in context_templates
@@ -42,7 +43,7 @@ def compute_ks(
     context_type_lens = [0] + [len(context_type) for context_type in context_templates]
     context_len = sum(context_type_lens)
     context_type_csum = np.cumsum(context_type_lens).tolist()
-
+    print(context_len, context_type_csum, context_type_lens)
     ans = []
     for i in range(0, layer_ks.size(0), context_len):
         tmp = []

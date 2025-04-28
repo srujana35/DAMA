@@ -132,10 +132,16 @@ def apply_AlphaEdit_to_model(
         )[1].T
         targets = zs - cur_zs
         print("z error", torch.linalg.norm(targets, dim=0).mean())
+        print("targets shape 1", layer_ks.shape)
 
         repeat_factor = (layer_ks.size(1) // targets.size(1))
         targets = targets.repeat_interleave(repeat_factor, dim=1)
+        print("targets shape after change 2", layer_ks.shape)
         resid = targets / (len(hparams.layers) - i)  # Distribute residual across layers
+        print("Layers_ks shape", layer_ks.shape)
+        print("Residual shape", resid.shape)
+        print("Null space projection matrix share", P[i,:,:].shape)
+        layer_ks = layer_ks.float()
         upd_matrix = torch.linalg.solve(
                 P[i,:,:].cuda() @ (layer_ks @ layer_ks.T + cache_c[i,:,:].cuda()) + hparams.L2*torch.eye(layer_ks.shape[0], dtype=torch.float,device="cuda"), P[i,:,:].cuda() @ layer_ks @ resid.T
         )
