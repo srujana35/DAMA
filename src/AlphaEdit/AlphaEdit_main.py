@@ -56,6 +56,9 @@ def apply_AlphaEdit_to_model(
         )
         for layer in hparams.layers
     }
+    bias_examples = [each for each in requests if each['gender_score'] != 0]
+    neutral_examples = [each for each in requests if each['gender_score'] == 0]
+    requests = bias_examples
     # Compute z for final layer
     context_templates = get_context_templates(model, tok)
     req_contexts = [templ.format(request["prompt"]) for templ in context_templates[0] for request in requests]
@@ -113,9 +116,6 @@ def apply_AlphaEdit_to_model(
         print(f"\n\nLAYER {layer}\n")
 
         # Get current model activations
-        bias_examples = [each for each in requests if each['gender_score'] != 0]
-        neutral_examples = [each for each in requests if each['gender_score'] == 0]
-        
         layer_ks = compute_ks(model, tok, bias_examples, hparams, layer, context_templates).T
         # neutral_ks = compute_ks(model, tok, neutral_examples, hparams, layer, context_templates).T
         print(f"Writing {layer_ks.size(1)} key/value pair(s) into layer {layer}")
