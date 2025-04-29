@@ -66,7 +66,7 @@ def apply_method(apply_function,
                 P[i, :, :] = get_project(model,tok,layer,hparams)
             torch.save(P, "null_space_project.pt")
 
-            model_new, _ = apply_AlphaEdit_to_model(
+            model_new, orig_weights = apply_AlphaEdit_to_model(
                 model, tok, requests, hparams, cache_template=None, cache_c=cache_c, P=P
             )
         elif apply_function == apply_alphaedit2_to_model:
