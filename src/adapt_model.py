@@ -51,6 +51,7 @@ def apply_method(apply_function,
                     requests: List[Dict],
                     hparams: ROMEHyperParams | DAMAHyperParams | AlphaEditHyperParams | AlphaEdit2HyperParams,
                     saveto=None, loadrom=None):
+    orig_weights = None
     if loadrom:
         print("Loading model from", loadrom)
         model_new = AutoModelForCausalLM.from_pretrained(loadrom, torch_dtype=torch.float16 if torch.cuda.is_available() else torch.float32,
@@ -60,8 +61,16 @@ def apply_method(apply_function,
         if apply_function == apply_AlphaEdit_to_model:
             # Load or create projection matrices here
             W_out = nethook.get_parameter(model, f"{hparams.rewrite_module_tmp.format(hparams.layers[-1])}.weight")
-            cache_c = torch.zeros((len(hparams.layers), W_out.shape[1], W_out.shape[1]), device="cpu")
-            P = torch.zeros((len(hparams.layers), W_out.shape[1], W_out.shape[1]), device="cpu")
+            P, cache_c = None, None
+
+            if 'gpt' in args.model_name:
+                hidden_size = W_out.shape[0]          # 1600
+                cache_c = torch.zeros(len(hparams.layers), hidden_size, hidden_size, device="cpu")
+                P       = torch.zeros_like(cache_c)
+            else:
+                cache_c = torch.zeros((len(hparams.layers), W_out.shape[1], W_out.shape[1]), device="cpu")
+                P = torch.zeros((len(hparams.layers), W_out.shape[1], W_out.shape[1]), device="cpu")
+
             for i, layer in enumerate(hparams.layers):
                 P[i, :, :] = get_project(model,tok,layer,hparams)
             torch.save(P, "null_space_project.pt")
@@ -314,8 +323,15 @@ if __name__ == "__main__":
         code_lines = this_code.readlines()
         source_out.writelines(code_lines)
 
-    generate_interactive(model_new, tok, max_out_len=100, use_logit_lens=True,
-                        layer_module_tmp= "model.layers.{}",
-                        ln_f_module= "model.norm",
-                        lm_head_module= "lm_head",
-                        compare_against=orig_model)
+    if 'llama' in args.model_name:
+        generate_interactive(model_new, tok, max_out_len=100, use_logit_lens=True,
+                            layer_module_tmp= "model.layers.{}",
+                            ln_f_module= "model.norm",
+                            lm_head_module= "lm_head",
+                            compare_against=orig_model)
+    else:
+        generate_interactive(model_new, tok, max_out_len=100, use_logit_lens=True,
+                             layer_module_tmp = hparams.layer_module_tmp,
+                             ln_f_module= hparams.ln_f_module,
+                             lm_head_module= hparams.lm_head_module,
+                             compare_against=orig_model)

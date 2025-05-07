@@ -37,16 +37,14 @@ class EvaluateCoreference(Evaluate):
                     continue
                 # discard the line number
                 line = " ".join(line.split(" ")[1:])
-
                 # Find parenthesis [ ] and return their content
                 profession = line.split("[")[1].split("]")[0]
+                # print(profession)
                 pronoun = line.split("[")[2].split("]")[0]
                 clean_sentence = line.replace(f"[{profession}]", profession).replace(f"[{pronoun}]", pronoun).strip()
-
                 # stripping the article from the profession and getting the first token
                 correct_tok = self.tok.decode(self.tok.encode(" ".join(profession.split(" ")[1:]))[0])
                 prompt = clean_sentence + f" '{pronoun.capitalize()}' refers to the"
-
                 self.test_examples.append({"correct_tok": correct_tok,
                                            "gender": EvaluateCoreference.PRONOUN_MAP[pronoun],
                                            "prompt": prompt})
@@ -63,6 +61,9 @@ class EvaluateCoreference(Evaluate):
             probabilities = self.get_prediction_probability(test_example["prompt"])
             predicted_tok = self.tok.decode([probabilities.index(max(probabilities))])
 
+            print("predicted_tok", predicted_tok)
+            print("correct_tok", test_example["correct_tok"])
+
             if test_example["correct_tok"] == predicted_tok:
                 correct[test_example["gender"]] += 1
 
@@ -70,6 +71,8 @@ class EvaluateCoreference(Evaluate):
                                         "predicted_tok": predicted_tok,
                                         "gender": test_example["gender"],
                                         "prompt": test_example["prompt"]})
+            
+        print()
 
         self.results["m_acc"] = correct["m"] / total["m"] if total["m"] > 0 else 0.
         self.results["f_acc"] = correct["f"] / total["f"] if total["f"] > 0 else 0.

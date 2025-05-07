@@ -26,6 +26,8 @@ class Evaluate:
     def get_prediction_probability(self, prompt):
 
         input_ids = self.tok.encode(prompt, return_tensors="pt")
+        device = next(self.model.parameters()).device
+        input_ids = input_ids.to(device)
         logits = self.model(input_ids)[0].float()
         probabilities = logits.softmax(dim=2)[:,-1,:].squeeze()
         return probabilities.tolist()

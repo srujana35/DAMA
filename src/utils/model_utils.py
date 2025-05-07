@@ -165,6 +165,7 @@ def get_model_tokenizer(model_name, param_number, compare_against=False):
     model = AutoModelForCausalLM.from_pretrained(model_path,
                                                  torch_dtype=torch.float16 if torch.cuda.is_available() else torch.float32,
                                                  low_cpu_mem_usage=True, device_map='auto', offload_folder="offload")
+    
 
     if torch.cuda.is_available() and torch.cuda.device_count() == 1:
         model = model.eval().cuda()
@@ -180,12 +181,17 @@ def get_model_tokenizer(model_name, param_number, compare_against=False):
     else:
         orig_model = None
 
-    tok = AutoTokenizer.from_pretrained(tokenizer_path, use_fast=True, return_token_type_ids=False, add_bos_token=False)
+    use_fast = False if "gpt2" in model_name else True
+    tok = AutoTokenizer.from_pretrained(tokenizer_path, use_fast=use_fast, return_token_type_ids=False, add_bos_token=False)
     # set llama special tokens
     if "llama3" not in model_name:
         tok.bos_token = "<s>"
         tok.eos_token = "</s>"
         tok.unk_token = "<unk>"
+        #for gpt2-xl
+        tok.add_special_tokens({"pad_token": tok.eos_token})
+        tok.padding_side = "right"
+        model.resize_token_embeddings(len(tok))
     else:
         # hack to do not make the bos token in llama3 (until tokenizer is fixed)
         tok._tokenizer.post_processor = processors.Sequence([processors.ByteLevel(trim_offsets=False),
@@ -195,7 +201,5 @@ def get_model_tokenizer(model_name, param_number, compare_against=False):
                                                                                                            (tok.eos_token, tok.eos_token_id)],
                                                                                            ),
                                                              ])
-    tok.pad_token = tok.eos_token
-    tok.padding_side = "right"
 
     return model_name, model, orig_model,  tok

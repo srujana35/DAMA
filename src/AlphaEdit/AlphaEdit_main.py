@@ -116,6 +116,10 @@ def apply_AlphaEdit_to_model(
         print(f"\n\nLAYER {layer}\n")
 
         # Get current model activations
+        # bias_examples = [each for each in requests if each['gender_score'] != 0]
+        # neutral_examples = [each for each in requests if each['gender_score'] == 0]
+        bias_examples = requests
+        
         layer_ks = compute_ks(model, tok, bias_examples, hparams, layer, context_templates).T
         # neutral_ks = compute_ks(model, tok, neutral_examples, hparams, layer, context_templates).T
         print(f"Writing {layer_ks.size(1)} key/value pair(s) into layer {layer}")

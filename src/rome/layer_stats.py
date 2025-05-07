@@ -56,9 +56,13 @@ def main():
             "Note, the statistics are collected over the inputs to the second MLP layer, "
             "or equivalently the outputs of the first MLP layer."
         )
-        # proj_layer_name = "c_proj" if "gpt2" in args.model_name else "fc_out"
-        # layer_name = f"transformer.h.{layer_num}.mlp.{proj_layer_name}"
-        layer_name = f"model.layers.{layer_num}.mlp.down_proj"
+        layer_name = None
+        if 'gpt2' in args.model_name:
+            layer_name = f"transformer.h.{layer_num}.mlp.c_proj"
+        else:
+            layer_name = f"model.layers.{layer_num}.mlp.down_proj"
+
+        print("layer name in rome layer stats:", layer_name)
         layer_stats(
             model,
             tokenizer,
@@ -98,7 +102,11 @@ def layer_stats(
         # from datasets import Dataset
         # raw_ds = Dataset.from_file('data/wikipedia-train.arrow')
         # raw_ds = {'train': raw_ds}
-        raw_ds = load_dataset("wikitext", "wikitext-2-raw-v1")
+        raw_ds = load_dataset(
+            ds_name,
+            dict(wikitext="wikitext-103-raw-v1", wikipedia="20220301.en")[ds_name]
+        )
+        # raw_ds = load_dataset("wikitext", "wikitext-2-raw-v1")
         if hasattr(model.config, 'n_positions'):
             maxlen = model.config.n_positions
         elif hasattr(model.config, 'max_sequence_length'):

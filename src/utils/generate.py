@@ -84,7 +84,6 @@ def generate_fast(
     Fast, parallelized auto-regressive text generation with top-k sampling.
     Our custom implementation.
     """
-
     # Unroll prompts and tokenize
     inp = [prompt for prompt in prompts for _ in range(n_gen_per_prompt)]
     if (type(tok) is LlamaTokenizerFast and not tok.add_bos_token) or type(tok) is PreTrainedTokenizerFast:
@@ -102,8 +101,8 @@ def generate_fast(
     # stored in `past_key_values`. At each step, we are generating the
     # next token for the index at `cur_context.stop + 1`.
     past_key_values =  None
-    cur_context = slice(0, attention_mask.sum(1).min().item())
-    whole_context = slice(0, attention_mask.sum(1).min().item())
+    cur_context = slice(0, int(attention_mask.sum(1).min().item()))
+    whole_context = slice(0, int(attention_mask.sum(1).min().item()))
     with torch.no_grad():
         while input_ids.size(1) < max_out_len:  # while not exceeding max output length
             model_out = model(
@@ -146,7 +145,6 @@ def generate_fast(
                 if new_idx < max_out_len:
                     input_ids[i][new_idx] = new_toks[i]
                     attention_mask[i][new_idx] = 1
-
             cur_context = slice(cur_context.stop, cur_context.stop + 1)
             whole_context = slice(0, whole_context.stop + 1)
 
