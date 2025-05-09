@@ -1,5 +1,6 @@
 import argparse
 import os
+import sys
 
 import torch
 import numpy as np
@@ -21,29 +22,43 @@ from evaluation import EvaluateGeneration, EvaluateCoreference, EvaluateCausalLM
     EvaluateStereoset, EvaluateTranslation
 
 def run_evaluation_on_task(model, tokenizer, model_name, task, test_file, output_dir):
-    if task == "gen":
-        evaluator = EvaluateGeneration(model, tokenizer, os.path.join(DATA_DIR, test_file), task)
-    elif task == "coref":
-        evaluator = EvaluateCoreference(model, tokenizer, os.path.join(DATA_DIR, args.test_file), task)
-    elif task == "causal_lm":
-        evaluator = EvaluateCausalLM(model, tokenizer, test_file, task)
-    elif task == "stereoset":
-        evaluator = EvaluateStereoset(model, tokenizer, os.path.join(DATA_DIR, test_file), task)
-    elif task == "interactive":
-        generate_interactive(model, tokenizer, max_out_len=100, use_logit_lens=True,
-                        layer_module_tmp= "model.layers.{}",
-                        ln_f_module= "model.norm",
-                        lm_head_module= "lm_head",
-                        compare_against=None)
-    elif task == "qa":
-        evaluator = EvaluateQA(model, tokenizer, os.path.join(DATA_DIR, args.test_file), task)
-    elif task == "translation":
-        evaluator = EvaluateTranslation(model, tokenizer, args.test_file, task, model_name)
-    else:
-        raise ValueError(f"Unknown task {task}")
+    # Check if test file exists
+    test_file_path = os.path.join(DATA_DIR, test_file)
+    if not os.path.exists(test_file_path):
+        print(f"Error: Test file not found at {test_file_path}")
+        sys.exit(1)
 
-    evaluator.evaluate()
-    evaluator.save_results(output_dir)
+    # Get device
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model = model.to(device)
+
+    try:
+        if task == "gen":
+            evaluator = EvaluateGeneration(model, tokenizer, test_file_path, task)
+        elif task == "coref":
+            evaluator = EvaluateCoreference(model, tokenizer, test_file_path, task)
+        elif task == "causal_lm":
+            evaluator = EvaluateCausalLM(model, tokenizer, test_file, task)
+        elif task == "stereoset":
+            evaluator = EvaluateStereoset(model, tokenizer, test_file_path, task)
+        elif task == "interactive":
+            generate_interactive(model, tokenizer, max_out_len=100, use_logit_lens=True,
+                            layer_module_tmp= "model.layers.{}",
+                            ln_f_module= "model.norm",
+                            lm_head_module= "lm_head",
+                            compare_against=None)
+        elif task == "qa":
+            evaluator = EvaluateQA(model, tokenizer, test_file_path, task)
+        elif task == "translation":
+            evaluator = EvaluateTranslation(model, tokenizer, test_file, task, model_name)
+        else:
+            raise ValueError(f"Unknown task {task}")
+
+        evaluator.evaluate()
+        evaluator.save_results(output_dir)
+    except Exception as e:
+        print(f"Error during evaluation: {str(e)}")
+        sys.exit(1)
 
 
 
@@ -74,7 +89,16 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    model_name, model, _, tok = get_model_tokenizer(args.model_name, args.param_number, False)
+    # Check if DATA_DIR exists
+    if not os.path.exists(DATA_DIR):
+        print(f"Error: Data directory not found at {DATA_DIR}")
+        sys.exit(1)
+
+    try:
+        model_name, model, _, tok = get_model_tokenizer(args.model_name, args.param_number, False)
+    except Exception as e:
+        print(f"Error loading model: {str(e)}")
+        sys.exit(1)
 
     tok.bos_token = "<s>"
     tok.eos_token = "</s>"
@@ -121,7 +145,7 @@ if __name__ == "__main__":
 
     elif args.method == "MEMIT":
         print(f"Evaluating MEMIT model")
-        output_dir = os.path.join(RESULTS_DIR, args.method, model_name)
+        output_dir = os.path.join(RESULTS_DIR, args.method, f"{model_name}_{str(args.num_layers)}L")
         hparams = MEMITHyperParams.from_json(os.path.join(output_dir, "hparams.json"))
         model = AutoModelForCausalLM.from_pretrained(output_dir, torch_dtype=torch.float16 if torch.cuda.is_available() else torch.float32,
                                                       low_cpu_mem_usage=True, device_map='auto')
