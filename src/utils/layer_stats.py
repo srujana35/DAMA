@@ -96,11 +96,7 @@ def layer_stats(
     """
 
     def get_ds():
-        raw_ds = load_dataset(
-            ds_name,
-            dict(wikitext="wikitext-103-raw-v1", wikipedia="20220301.en")[ds_name],
-            download_mode="force_redownload", split="train[:10%]"
-        )
+        raw_ds = load_dataset("wikitext", "wikitext-2-raw-v1")
         # raw_ds = load_dataset("wikitext", "wikitext-2-raw-v1")
         # raw_ds = load_dataset(
         #     "wikitext",
@@ -110,7 +106,7 @@ def layer_stats(
         maxlen = model.config.max_position_embeddings
         if batch_tokens is not None and batch_tokens < maxlen:
             maxlen = batch_tokens
-        return TokenizedDataset(raw_ds, tokenizer, maxlen=maxlen)
+        return TokenizedDataset(raw_ds["train"], tokenizer, maxlen=maxlen)
 
     # Continue with computation of statistics
     batch_size = 100  # Examine this many dataset texts at once

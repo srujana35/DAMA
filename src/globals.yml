@@ -14,7 +14,7 @@
   MODEL_DIR: "../../models"
 
   # Hyperparameters
-  HPARAMS_DIR: "/project/pi_wenlongzhao_umass_edu/1/jkarnuthala/notebooks/temp/DAMA/hparams"
+  HPARAMS_DIR: "../hparams"
 
   # Remote URLs
   REMOTE_ROOT_URL: None
