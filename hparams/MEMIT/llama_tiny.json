@@ -1,6 +1,6 @@
 {
     "layers": [0, 1],
-    "fact_token": "last",
+    "fact_token": "subject_last",
     "v_num_grad_steps": 20,
     "v_lr": 5e-1,
     "v_loss_layer": 1,
