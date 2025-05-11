@@ -74,8 +74,22 @@ For coreference resolution change the last two lines with:
 For the evaluation on StereoSet change the last two lines with:
 
 ```bash
---test_file stereoset_dev.json \
+--test_file test_stereoset_gender.json \
 --test_task stereoset
+```
+
+For the evaluation on Downstream tasks for OpenBookQA dataset, ARC challenge and EasyQA change the one lines with:
+
+```bash
+--test_task "qa"
+```
+
+```bash
+--test_task "arc-challenge"
+```
+
+```bash
+--test_task "arc-easy"
 ```
 
 The test data are available at https://github.com/uclanlp/corefBias/tree/master/WinoBias/wino/data.
