@@ -180,6 +180,12 @@ if __name__ == "__main__":
         model.config.eos_token_id = tok.eos_token_id
         model.config.unk_token_id = tok.unk_token_id
         model.config.pad_token_id = tok.pad_token_id
+    elif args.method == "PLAIN_GPT2_MEDIUM":
+        print(f"Evaluating plain GPT2-MEDIUM model")
+        output_dir = os.path.join(RESULTS_DIR, args.method, model_name)
+        hparams = None
+        model = AutoModelForCausalLM.from_pretrained("gpt2-medium", torch_dtype=torch.float16 if torch.cuda.is_available() else torch.float32,
+                                                      low_cpu_mem_usage=True, device_map='auto')
     elif args.method == None:
         print(f"Evaluating original model {model_name}")
         output_dir = os.path.join(RESULTS_DIR, "original",model_name)
