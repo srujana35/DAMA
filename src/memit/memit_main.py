@@ -7,7 +7,7 @@ import numpy as np
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-from rome.layer_stats import layer_stats
+from utils.layer_stats import layer_stats
 from utils import nethook
 from utils.generate import generate_fast
 from utils.globals import *
