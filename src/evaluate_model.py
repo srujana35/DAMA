@@ -19,12 +19,12 @@ from utils.generate import generate_interactive, generate_fast
 from adapt_model import get_model_tokenizer, parse_experiment_name
 
 from evaluation import EvaluateGeneration, EvaluateCoreference, EvaluateCausalLM, EvaluateQA,\
-    EvaluateStereoset, EvaluateTranslation
+    EvaluateStereoset, EvaluateTranslation, EvaluateARC
 
 def run_evaluation_on_task(model, tokenizer, model_name, task, test_file, output_dir):
     # Check if test file exists
-    test_file_path = os.path.join(DATA_DIR, test_file)
-    if not os.path.exists(test_file_path):
+    test_file_path = os.path.join(DATA_DIR, test_file) if test_file else None
+    if test_file and not os.path.exists(test_file_path):
         print(f"Error: Test file not found at {test_file_path}")
         sys.exit(1)
 
@@ -51,6 +51,8 @@ def run_evaluation_on_task(model, tokenizer, model_name, task, test_file, output
             evaluator = EvaluateQA(model, tokenizer, test_file_path, task)
         elif task == "translation":
             evaluator = EvaluateTranslation(model, tokenizer, test_file, task, model_name)
+        elif task in ["arc-challenge", "arc-easy"]:
+            evaluator = EvaluateARC(model, tokenizer, test_file, task)
         else:
             raise ValueError(f"Unknown task {task}")
 
@@ -172,7 +174,7 @@ if __name__ == "__main__":
         hparams = AlphaEditHyperParams.from_json(os.path.join(output_dir, "hparams.json"))
         model = AutoModelForCausalLM.from_pretrained('gpt2-xl', torch_dtype=torch.float16 if torch.cuda.is_available() else torch.float32,
                                                       low_cpu_mem_usage=True, device_map='auto')
-        # 2) Tell the model about the tokenizer’s new vocab size
+        # 2) Tell the model about the tokenizer's new vocab size
         model.resize_token_embeddings(len(tok))
 
         # 3) Update its config so that attention_mask logic and BOS/EOS use the right IDs
