@@ -424,6 +424,7 @@ def execute_dama(
                     force_recompute=force_recompute,
                 )
                 cov = cov.to(cur_device)
+                U = U.to(cov.device)
     
     
                 print("Solving withening equation for U...")
@@ -446,7 +447,11 @@ def execute_dama(
     
             elif hparams.projection_location == "after":
                 h_dim = V.shape[1]
-                H_left = U @ W.T
+                if isinstance(W, np.ndarray):
+                    W_T_tensor = torch.from_numpy(W.T).to(U.device).float()
+                else:
+                    W_T_tensor = W.T.to(U.device).float()
+                H_left = U @ W_T_tensor
                 H_right = V
             else:
                 raise ValueError(f"Unknown projection location {hparams.projection_location}")
@@ -540,9 +545,10 @@ def execute_dama(
                 M = M.detach().cpu()
                 mu_in = mu_in.detach().cpu()
                 mu_out = mu_out.detach().cpu()
-                mu_neutral = mu_neutral.detach().cpu()
-                mu_pos = mu_pos.detach().cpu()
-                mu_neg = mu_neg.detach().cpu()
+                if mu_neutral is not None:
+                    mu_neutral = mu_neutral.detach().cpu()
+                    mu_pos = mu_pos.detach().cpu()
+                    mu_neg = mu_neg.detach().cpu()
                 torch.cuda.empty_cache()
     print(f"Projections successfully computed for layer {list(projections.keys())}")
     return projections

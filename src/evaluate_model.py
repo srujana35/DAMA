@@ -23,13 +23,13 @@ from evaluation import EvaluateGeneration, EvaluateCoreference, EvaluateCausalLM
 
 def run_evaluation_on_task(model, tokenizer, model_name, task, test_file, output_dir):
     # Check if test file exists
-    if test_file:
-        test_file_path = os.path.join(DATA_DIR, test_file)
-        if not os.path.exists(test_file_path):
-            print(f"Error: Test file not found at {test_file_path}")
-            sys.exit(1)
-    else:
-        test_file_path = None
+    # if test_file:
+    #     test_file_path = os.path.join(DATA_DIR, test_file)
+    #     if not os.path.exists(test_file_path):
+    #         print(f"Error: Test file not found at {test_file_path}")
+    #         sys.exit(1)
+    # else:
+    #     test_file_path = None
 
     # Get device
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -152,6 +152,12 @@ if __name__ == "__main__":
         print(f"Evaluating MEMIT model")
         output_dir = os.path.join(RESULTS_DIR, args.method, f"{model_name}_{str(args.num_layers)}L")
         hparams = MEMITHyperParams.from_json(os.path.join(output_dir, "hparams.json"))
+        model = AutoModelForCausalLM.from_pretrained(output_dir, torch_dtype=torch.float16 if torch.cuda.is_available() else torch.float32,
+                                                      low_cpu_mem_usage=True, device_map='auto')
+    elif args.method == "ALPHA_EDIT":
+        print(f"Evaluating ALPHA_EDIT model")
+        output_dir = os.path.join(RESULTS_DIR, args.method, f"{model_name}_{str(args.num_layers)}L")
+        hparams =AlphaEditHyperParams.from_json(os.path.join(output_dir, "hparams.json"))
         model = AutoModelForCausalLM.from_pretrained(output_dir, torch_dtype=torch.float16 if torch.cuda.is_available() else torch.float32,
                                                       low_cpu_mem_usage=True, device_map='auto')
     elif args.method == "FT":
