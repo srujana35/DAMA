@@ -113,14 +113,20 @@ if __name__ == "__main__":
     else:
         model_identifier = model_name.split('/')[-1].replace('-','_')
 
-    # load model and split over multiple gpus if necessary
-    mt = ModelAndTokenizer(model_name, torch_dtype=torch.float16 if torch.cuda.is_available() else torch.float32,
+    print(f"[DEBUG] Loading model: {model_name}")
+    mt = ModelAndTokenizer(model_name, torch_dtype=torch.float16 if torch.cuda.is_available() else torch.float16,
                            low_cpu_mem_usage=False)
+    print(f"[DEBUG] Loaded model: {mt}")
+
+    print(f"[DEBUG] Loading data...")
     knowns, noise_level = load_data(mt, DATA_DIR, args.noise_level)
-    
+    print(f"[DEBUG] Loaded data. Noise level: {noise_level}")
+
+    print(f"[DEBUG] Starting computation of gender effects...")
     compute_save_gender_effects(RESULTS_DIR, mt, knowns, noise_level, args.cap_examples, args.disable_mlp, args.disable_attn,
                                 param_number=args.param_number, inlp_projection=args.inlp_projection,
                                 model_identifier=model_identifier)
+    print(f"[DEBUG] Finished computation.")
     
     
     
