@@ -182,7 +182,7 @@ def get_model_tokenizer(model_name, param_number, compare_against=False):
 
     tok = AutoTokenizer.from_pretrained(tokenizer_path, use_fast=True, return_token_type_ids=False, add_bos_token=False)
     # set llama special tokens
-    if "llama3" not in model_name:
+    if "Llama_3" not in model_name:
         tok.bos_token = "<s>"
         tok.eos_token = "</s>"
         tok.unk_token = "<unk>"
