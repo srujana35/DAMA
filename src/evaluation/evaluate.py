@@ -1,5 +1,7 @@
 import os
 import json
+import torch
+import numpy as np
 
 from abc import abstractmethod
 
@@ -11,6 +13,7 @@ class Evaluate:
         self.tok = tok
         self.test_file = test_file
         self.task = task
+        self.device = next(model.parameters()).device
 
         self.results = {}
         self.partial_results = {}
@@ -24,6 +27,26 @@ class Evaluate:
         pass
 
     def get_prediction_probability(self, prompt):
+        input_ids = self.tok.encode(prompt, return_tensors="pt").to(self.device)
+        with torch.no_grad():
+            outputs = self.model(input_ids)
+            logits = outputs[0].float()
+            # Get the last token's logits
+            last_token_logits = logits[0, -1, :]
+            # Apply softmax to get probabilities
+            probabilities = torch.softmax(last_token_logits, dim=-1)
+            
+            # Get top 5 predictions for debugging
+            top5_probs, top5_indices = torch.topk(probabilities, 5)
+            top5_tokens = [self.tok.decode([idx.item()]).strip() for idx in top5_indices]  # Strip whitespace
+            top5_probs = top5_probs.cpu().tolist()
+            
+            print(f"\nPrompt: {prompt}")
+            print("Top 5 predictions:")
+            for token, prob in zip(top5_tokens, top5_probs):
+                print(f"Token: {token}, Probability: {prob:.4f}")
+            
+        return probabilities.cpu().tolist()
 
         new_device = next(self.model.parameters()).device
         input_ids = self.tok.encode(prompt, return_tensors="pt").to(new_device)

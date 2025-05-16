@@ -72,7 +72,7 @@ class EvaluateGeneration(Evaluate):
             prob_he = probabilities[he_token_id]
             prob_she = probabilities[she_token_id]
             prob_they = probabilities[they_token_id]
-            predicted_token = self.tok.decode([probabilities.index(max(probabilities))])
+            predicted_token = self.tok.decode([probabilities.index(max(probabilities))]).strip()
 
             self.partial_results["s_score"].append(s_score)
             self.partial_results["f_score"].append(f_score)

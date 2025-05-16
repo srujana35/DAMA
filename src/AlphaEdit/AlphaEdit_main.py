@@ -8,6 +8,7 @@ import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 from utils.layer_stats import layer_stats
+from Baselines.rome.layer_stats import layer_stats
  
 from utils import nethook
  
@@ -33,8 +34,8 @@ def apply_AlphaEdit_to_model(
     P = None,
 ) -> Dict[str, Tuple[torch.Tensor]]:
     """
-    Executes the MEMIT update algorithm for the specified update at the specified layer
-    Invariant: model at beginning of function == model at end of function
+    Executes the AlphaEdit update algorithm for debiasing, using null space projection
+    to preserve non-target knowledge while removing biases.
     """
 
     # Update target and print info
@@ -115,8 +116,9 @@ def apply_AlphaEdit_to_model(
     for i, layer in enumerate(hparams.layers):
         print(f"\n\nLAYER {layer}\n")
 
-        # Get current model activations
-        layer_ks = compute_ks(model, tok, bias_examples, hparams, layer, context_templates).T
+        all_examples = requests
+        
+        layer_ks = compute_ks(model, tok, all_examples, hparams, layer, context_templates).T
         # neutral_ks = compute_ks(model, tok, neutral_examples, hparams, layer, context_templates).T
         print(f"Writing {layer_ks.size(1)} key/value pair(s) into layer {layer}")
 
@@ -151,7 +153,7 @@ def apply_AlphaEdit_to_model(
         print("orig norm", torch.linalg.norm(weights[weight_name]))
         print("upd norm", torch.linalg.norm(upd_matrix))
         with torch.no_grad():
-            weights[weight_name][...] = weights[weight_name] - upd_matrix
+            weights[weight_name][...] = weights[weight_name] + upd_matrix
         # Clear GPU memory
         #del U,S,cov
         for x in [layer_ks, cur_zs, targets, upd_matrix]:

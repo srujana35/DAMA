@@ -7,12 +7,12 @@ import numpy as np
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 from utils import nethook
-from dama.dama_main import apply_dama_on_module
-from dama.dama_hparams import DAMAHyperParams
-from dama_l.dama_l_hparams import DAMALeaceHyperParams
-from memit.memit_main import MEMITHyperParams
+from Baselines.dama.dama_main import apply_dama_on_module
+from Baselines.dama.dama_hparams import DAMAHyperParams
+# from Baselines.dama_l.dama_l_hparams import DAMALeaceHyperParams
+from Baselines.memit.memit_main import MEMITHyperParams
 from AlphaEdit.AlphaEdit_hparams import AlphaEditHyperParams
-from ft.ft_main import FTHyperParams
+from Baselines.ft.ft_main import FTHyperParams
 from utils.globals import *
 from utils.model_utils import *
 from utils.generate import generate_interactive, generate_fast
@@ -138,15 +138,15 @@ if __name__ == "__main__":
         hparams = DAMAHyperParams.from_json(os.path.join(output_dir, "hparams.json"))
         projection_file = os.path.join(output_dir, "projections.npy")
         model = load_dama_model(model, hparams, projection_file)
-    elif args.method == "DAMA_L":
-        print(f"Evaluating DAMA Leace model")
-        output_dir = os.path.join(RESULTS_DIR, args.method, f"{model_name}_{str(args.num_layers)}L")
-        if args.multilingual_training:
-            output_dir += "_multilingual"
+    # elif args.method == "DAMA_L":
+    #     print(f"Evaluating DAMA Leace model")
+    #     output_dir = os.path.join(RESULTS_DIR, args.method, f"{model_name}_{str(args.num_layers)}L")
+    #     if args.multilingual_training:
+    #         output_dir += "_multilingual"
 
-        hparams = DAMALeaceHyperParams.from_json(os.path.join(output_dir, "hparams.json"))
-        projection_file = os.path.join(output_dir, "projections.npy")
-        model = load_dama_model(model, hparams, projection_file)
+    #     hparams = DAMALeaceHyperParams.from_json(os.path.join(output_dir, "hparams.json"))
+    #     projection_file = os.path.join(output_dir, "projections.npy")
+    #     model = load_dama_model(model, hparams, projection_file)
 
     elif args.method == "MEMIT":
         print(f"Evaluating MEMIT model")

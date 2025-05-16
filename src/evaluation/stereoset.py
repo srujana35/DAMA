@@ -370,11 +370,7 @@ class EvaluateStereoset(Evaluate):
         
         try:
             # Initialize model with proper token handling
-            print(f"Model name: {self.tok.name_or_path}")
-            if self.tok.name_or_path.lower().startswith("gpt2"):
-                unconditional_start_token = "<|endoftext|>"  # Changed from "<s>" to GPT2's EOS token
-            else:
-                unconditional_start_token = "<s>"  # Changed from "<s>" to GPT2's EOS token
+            unconditional_start_token = "<|endoftext|>"  # Changed from "<s>" to GPT2's EOS token
             start_token = self.tok.encode(unconditional_start_token, add_special_tokens=True)
             if len(start_token) == 0:
                 print("Warning: Empty tokenization for start token, using default token")

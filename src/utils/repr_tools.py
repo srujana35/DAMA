@@ -76,6 +76,8 @@ def get_words_idxs_in_templates(
     prefixes_tok, words_tok, suffixes_tok = [
         batch_tok[i : i + n] for i in range(0, n * 3, n)
     ]
+
+    ##change to [len(el) for el in tok_list['input_ids']] for gptxl
     prefixes_len, words_len, suffixes_len = [
         [len(el) for el in tok_list]
         for tok_list in [prefixes_tok, words_tok, suffixes_tok]
@@ -257,6 +259,7 @@ def find_fact_lookup_idx(
     Computes hypothesized fact lookup index given a sentence and subject.
     """
 
+
     ret = None
     if fact_token_strategy == "last":
         ret = len(tok(prompt.format(subject)).input_ids) - 1
@@ -269,10 +272,13 @@ def find_fact_lookup_idx(
             words=[subject],
             subtoken=fact_token_strategy[len("subject_") :],
         )[0][0]
+
     else:
         raise ValueError(f"fact_token={fact_token_strategy} not recognized")
 
     sentence = prompt.format(subject)
+
+
     if verbose:
         print(
             f"Lookup index found: {ret} | Sentence: {sentence} | Token:",

@@ -9,16 +9,16 @@ import shutil
 import numpy as np
 import random
 
-from rome import ROMEHyperParams, apply_rome_to_model, execute_rome
-from dama import DAMAHyperParams, apply_dama_to_model, execute_dama
+from Baselines.rome import ROMEHyperParams, apply_rome_to_model, execute_rome
+from Baselines.dama import DAMAHyperParams, apply_dama_to_model, execute_dama
 from AlphaEdit.AlphaEdit_hparams import AlphaEditHyperParams
 from AlphaEdit2.alphaedit2_hparams import AlphaEdit2HyperParams
 from AlphaEdit.AlphaEdit_main import apply_AlphaEdit_to_model
 from AlphaEdit2.alphaedit2_main import apply_alphaedit2_to_model
-from dama_l import DAMALeaceHyperParams
-from dama_l.dama_l_main import apply_dama_l_to_model, execute_dama_l
-from memit import MEMITHyperParams, apply_memit_to_model, execute_memit
-from ft import FTHyperParams, apply_ft_to_model, execute_ft
+# from dama_l import DAMALeaceHyperParams
+# from dama_l.dama_l_main import apply_dama_l_to_model, execute_dama_l
+from Baselines.memit import MEMITHyperParams, apply_memit_to_model, execute_memit
+from Baselines.ft import FTHyperParams, apply_ft_to_model, execute_ft
 
 from utils.generate import generate_interactive, generate_fast
 from utils import nethook
@@ -51,6 +51,7 @@ def apply_method(apply_function,
                     requests: List[Dict],
                     hparams: ROMEHyperParams | DAMAHyperParams | AlphaEditHyperParams | AlphaEdit2HyperParams,
                     saveto=None, loadrom=None):
+    orig_weights = None
     if loadrom:
         print("Loading model from", loadrom)
         model_new = AutoModelForCausalLM.from_pretrained(loadrom, torch_dtype=torch.float16 if torch.cuda.is_available() else torch.float32,
@@ -60,8 +61,16 @@ def apply_method(apply_function,
         if apply_function == apply_AlphaEdit_to_model:
             # Load or create projection matrices here
             W_out = nethook.get_parameter(model, f"{hparams.rewrite_module_tmp.format(hparams.layers[-1])}.weight")
-            cache_c = torch.zeros((len(hparams.layers), W_out.shape[1], W_out.shape[1]), device="cpu")
-            P = torch.zeros((len(hparams.layers), W_out.shape[1], W_out.shape[1]), device="cpu")
+            P, cache_c = None, None
+
+            if 'gpt' in args.model_name:
+                hidden_size = W_out.shape[0]          # 1600
+                cache_c = torch.zeros(len(hparams.layers), hidden_size, hidden_size, device="cpu")
+                P       = torch.zeros_like(cache_c)
+            else:
+                cache_c = torch.zeros((len(hparams.layers), W_out.shape[1], W_out.shape[1]), device="cpu")
+                P = torch.zeros((len(hparams.layers), W_out.shape[1], W_out.shape[1]), device="cpu")
+
             for i, layer in enumerate(hparams.layers):
                 P[i, :, :] = get_project(model,tok,layer,hparams)
             torch.save(P, "null_space_project.pt")
@@ -143,11 +152,11 @@ def model_editing(
             model, tok, requests, hparams, copy=False, return_orig_module=True,
             projections_saveto=projections_saveto, projections_loadfrom=projections_loadfrom,
             output_dir=output_dir, ncv=ncv, val=val, use_neutral=use_neutral)
-    elif method == 'DAMA_L':
-        model_new, orig_weights = apply_dama_l_to_model(
-            model, tok, requests, hparams, copy=False, return_orig_module=True,
-            projections_saveto=projections_saveto, projections_loadfrom=projections_loadfrom,
-            output_dir=output_dir)
+    # elif method == 'DAMA_L':
+    #     model_new, orig_weights = apply_dama_l_to_model(
+    #         model, tok, requests, hparams, copy=False, return_orig_module=True,
+    #         projections_saveto=projections_saveto, projections_loadfrom=projections_loadfrom,
+    #         output_dir=output_dir)
     elif method == 'ALPHA_EDIT':
         model_new, orig_weights = apply_method(apply_AlphaEdit_to_model, model, tok, requests, hparams,
                                                projections_saveto, projections_loadfrom)
@@ -277,9 +286,9 @@ if __name__ == "__main__":
     if args.method == 'DAMA':
         hparams_path = os.path.join(HPARAMS_DIR, args.method, model_name, f"{experiment_name}.json")
         hparams = DAMAHyperParams.from_json(hparams_path)
-    elif args.method == 'DAMA_L':
-        hparams_path = os.path.join(HPARAMS_DIR, args.method, f"{model_name}_{str(args.num_layers)}L.json")
-        hparams = DAMALeaceHyperParams.from_json(hparams_path)
+    # elif args.method == 'DAMA_L':
+    #     hparams_path = os.path.join(HPARAMS_DIR, args.method, f"{model_name}_{str(args.num_layers)}L.json")
+    #     hparams = DAMALeaceHyperParams.from_json(hparams_path)
     elif args.method == 'MEMIT':
         hparams_path = os.path.join(HPARAMS_DIR, args.method, f"{model_name}.json")
         hparams = MEMITHyperParams.from_json(hparams_path)
@@ -314,8 +323,15 @@ if __name__ == "__main__":
         code_lines = this_code.readlines()
         source_out.writelines(code_lines)
 
-    generate_interactive(model_new, tok, max_out_len=100, use_logit_lens=True,
-                        layer_module_tmp= "model.layers.{}",
-                        ln_f_module= "model.norm",
-                        lm_head_module= "lm_head",
-                        compare_against=orig_model)
+    if 'llama' in args.model_name:
+        generate_interactive(model_new, tok, max_out_len=100, use_logit_lens=True,
+                            layer_module_tmp= "model.layers.{}",
+                            ln_f_module= "model.norm",
+                            lm_head_module= "lm_head",
+                            compare_against=orig_model)
+    else:
+        generate_interactive(model_new, tok, max_out_len=100, use_logit_lens=True,
+                             layer_module_tmp = hparams.layer_module_tmp,
+                             ln_f_module= hparams.ln_f_module,
+                             lm_head_module= hparams.lm_head_module,
+                             compare_against=orig_model)

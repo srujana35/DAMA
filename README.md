@@ -1,95 +1,114 @@
-# DAMA
-**D**ebiasing **A**lgorithm through **M**odel **A**daptation. The method for decreasing gender bias in LLaMA family LLMs.
+# Bias Be Gone: Model Editing for Gender Debiasing in Language Models
 
-All code should be run from `src` directory. Please, install all dependencies with `pip install -r requirements.txt`.
+This repository contains the implementation of **AlphaEdit**, a model editing-based approach to reduce gender bias in large language models. Our method targets specific layers identified via causal tracing and applies null-space constrained weight edits to mitigate bias while preserving the model’s general knowledge.
+
+![AlphaEdit Architecture](data/AlphaEdit_Architecture_Debiasing.png)
+*Figure: This is the overall architecture of our AlphaEdit method. Unlike MEMIT, which jointly balances updated and preserved knowledge (K₁ and K₀), AlphaEdit projects updates onto the null space of preserved knowledge (K₀), allowing focused and controlled edits.*
+
+
+> **Note:** This repository is forked from [DAMA](https://github.com/tomlimi/DAMA) and extends the model editing framework to implement **AlphaEdit** a novel technique for targeted gender debiasing in language models using null-space constrained projection.
+
+
+## Overview
+
+Large language models (LLMs) often encode and amplify gender biases found in their training data. Traditional debiasing approaches like fine-tuning are costly and can degrade model performance. Our method offers a more efficient alternative using targeted model editing.
+
+We extend the AlphaEdit method with:
+- **Causal tracing** to locate biased components
+- **Null-space projection** to ensure edits do not interfere with preserved knowledge
+- **Support for GPT2-XL and LLaMA models (1B and 7B)**
+
+## Key Features
+
+- Bias localization using causal tracing  
+- Precision editing with AlphaEdit  
+- Supports multiple model architectures (GPT2-XL, LLaMA2-7B, LLaMA3.2-1B)  
+- Evaluation on bias benchmarks (WinoBias, StereoSet)  
+- Downstream task validation (ARC, OpenBookQA, WikiText-103)
 
 ## Causal Tracing
 
-The causal tracing is conducted following the method proposed by Meng et al. 2023.
-The input representation is obstructed by adding a noise to potentially biased workds (profession names).
-Then we re-introduce the clean representation at different components of the model to check how prone they are to skew the output of the model.
+We use **causal tracing** (based MEMIT) to identify layers that encode biased associations. The process involves:
 
+1. Injecting **biased prompts** alongside **counterfactual prompts**.
+2. Monitoring how the model’s hidden activations evolve across layers.
+3. Identifying layers that show strong influence from biased tokens but low correlation with factual cues.
 
-To get the results of casual tracing run:
+This tracing helps us choose the **best layers to intervene** for debiasing, ensuring that our edits are both effective and targeted.
 
-```bash
-python trace.py \
---model_name_path llama \
---param_number 7 \
---disable_mlp
+For GPT2-XL, layers `[13, 14, 15, 16, 17]` were selected based on tracing results.
+For LLaMA models, layer choices were based on prior work and empirical validation.
 
-```
- `param_number` is provided in the billions of parameters.
-`disable_mlp` is a flag for severing MLP heads (following Meng et al. 2023).
-The results can be visualized with jupyter notebooks in `src/notebooks` directory.
+## Results
 
-## Running DAMA
+| Model      | Method    | Bias ↓ | Factuality ↑ | WinoBias ↑ | StereoSet ICAT ↑ | PPL ↓ |
+|------------|-----------|--------|---------------|------------|------------------|-------|
+| GPT2-XL    | Base      | 0.243  | 0.330         | 34.5%      | 58.02            | 61.23 |
+| GPT2-XL    | AlphaEdit | 0.051  | 0.366         | 39.5%      | 59.91            | 61.38 |
+| LLaMA2-7B  | AlphaEdit | 0.151  | 0.322         | 36.4%      | 61.45            | 21.36 |
 
-Before debiasing it's necessary to prepare hyperparameter files.
-An example in `examples/llama_7B_l9_once_prel_gen_bn_on.json`
+## Dataset
 
-To run dama on a specific model, you need to run the following command:
+We use a curated dataset based on Bolukbasi et al. (2016) professions with gender stereotype scores. Prompts are generated using templates like:
 
-```bash
-python adapt_model.py \
---model_name llama \
---param_num 7 \
---method DAMA \
---num_layers 9 \
---iterative_update \
---post_linear \
---request_file train_dama.json
-```
+- "The {profession} said that..."
+- "The {profession} laughed because..."
 
-The flags of the call need to correspond to the name of the hyperparameter file name.
-An example of training file is provided in `examples/train_dama_tiny.json`
+Evaluated on:
+- [WinoBias](https://github.com/uclanlp/corefBias)
+- [StereoSet](https://github.com/moinnadeem/StereoSet)
+- [ARC Challenge](https://allenai.org/data/arc)
+- [OpenBookQA](https://allenai.org/data/open-book-qa)
+- WikiText-103
 
-## Evaluating Model
-
-The projections from DAMA will be saved in result subsdirectory named the same as params file.
-
-The evaluation of the model is obtained by running:
+## Installation
 
 ```bash
-python evaluate_model.py \
---model_name llama \
---param_num 7 \
---method DAMA \
---num_layers 9 \ 
---iterative_update \
---post_linear \
---test_file test_dama.json \
---test_task gen
+git clone https://github.com/srujana35/DAMA.git
+cd DAMA
+pip install -r requirements.txt
 ```
+ 
+ ## Running AlphaEdit
 
-An example of test file is provided in `examples/test_dama_tiny.json`
-
-For coreference resolution change the last two lines with:
+To run AlphaEdit on GPT2-XL/Llama2-7B using causal tracing-informed layers:
 
 ```bash
---test_file anti_type1_test.txt \
---test_task coref
+python adapt_model.py 
+    --model_name "gpt2-xl" 
+    --method "ALPHA_EDIT" 
+    --request_file "train_dama_processed.json" 
+    --num_layers 5
+    --post_linear True 
+    --iterative_update True 
+    --random_seed 45
 ```
 
-For the evaluation on StereoSet change the last two lines with:
+## Evaluation
+
+### Bias Evaluation
+
+Run the following to evaluate on WinoBias and StereoSet:
 
 ```bash
---test_file test_stereoset_gender.json \
---test_task stereoset
+python evaluate_model.py 
+    --param_number 7 
+    --method "ALPHA_EDIT" 
+    --test_file "${ds}_${ds_split}.txt" 
+    --test_task "coref" 
+    --model_name gpt2-xl
 ```
 
-For the evaluation on Downstream tasks for OpenBookQA dataset, ARC challenge and EasyQA change the one lines with:
+This script evaluates:
+	•	WinoBias: Coreference accuracy
+	•	StereoSet: Stereotype Score (SS), Language Modeling Score (LMS), and ICAT
+
+Downstream Evaluation
 
 ```bash
---test_task "qa"
+python evaluate_model.py 
+    --param_number 7 
+    --method "ALPHA_EDIT" 
+    --test_task "qa" 
+    --model_name gpt2-xl
 ```
-
-```bash
---test_task "arc-challenge"
-```
-
-```bash
---test_task "arc-easy"
-```
-
-The test data are available at https://github.com/uclanlp/corefBias/tree/master/WinoBias/wino/data.
