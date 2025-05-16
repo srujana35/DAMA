@@ -38,7 +38,7 @@ class Evaluate:
             
             # Get top 5 predictions for debugging
             top5_probs, top5_indices = torch.topk(probabilities, 5)
-            top5_tokens = [self.tok.decode([idx.item()]) for idx in top5_indices]
+            top5_tokens = [self.tok.decode([idx.item()]).strip() for idx in top5_indices]  # Strip whitespace
             top5_probs = top5_probs.cpu().tolist()
             
             print(f"\nPrompt: {prompt}")

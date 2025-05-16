@@ -9,16 +9,16 @@ import shutil
 import numpy as np
 import random
 
-from rome import ROMEHyperParams, apply_rome_to_model, execute_rome
-from dama import DAMAHyperParams, apply_dama_to_model, execute_dama
+from Baselines.rome import ROMEHyperParams, apply_rome_to_model, execute_rome
+from Baselines.dama import DAMAHyperParams, apply_dama_to_model, execute_dama
 from AlphaEdit.AlphaEdit_hparams import AlphaEditHyperParams
 from AlphaEdit2.alphaedit2_hparams import AlphaEdit2HyperParams
 from AlphaEdit.AlphaEdit_main import apply_AlphaEdit_to_model
 from AlphaEdit2.alphaedit2_main import apply_alphaedit2_to_model
-from dama_l import DAMALeaceHyperParams
-from dama_l.dama_l_main import apply_dama_l_to_model, execute_dama_l
-from memit import MEMITHyperParams, apply_memit_to_model, execute_memit
-from ft import FTHyperParams, apply_ft_to_model, execute_ft
+# from dama_l import DAMALeaceHyperParams
+# from dama_l.dama_l_main import apply_dama_l_to_model, execute_dama_l
+from Baselines.memit import MEMITHyperParams, apply_memit_to_model, execute_memit
+from Baselines.ft import FTHyperParams, apply_ft_to_model, execute_ft
 
 from utils.generate import generate_interactive, generate_fast
 from utils import nethook
@@ -152,11 +152,11 @@ def model_editing(
             model, tok, requests, hparams, copy=False, return_orig_module=True,
             projections_saveto=projections_saveto, projections_loadfrom=projections_loadfrom,
             output_dir=output_dir, ncv=ncv, val=val, use_neutral=use_neutral)
-    elif method == 'DAMA_L':
-        model_new, orig_weights = apply_dama_l_to_model(
-            model, tok, requests, hparams, copy=False, return_orig_module=True,
-            projections_saveto=projections_saveto, projections_loadfrom=projections_loadfrom,
-            output_dir=output_dir)
+    # elif method == 'DAMA_L':
+    #     model_new, orig_weights = apply_dama_l_to_model(
+    #         model, tok, requests, hparams, copy=False, return_orig_module=True,
+    #         projections_saveto=projections_saveto, projections_loadfrom=projections_loadfrom,
+    #         output_dir=output_dir)
     elif method == 'ALPHA_EDIT':
         model_new, orig_weights = apply_method(apply_AlphaEdit_to_model, model, tok, requests, hparams,
                                                projections_saveto, projections_loadfrom)
@@ -286,9 +286,9 @@ if __name__ == "__main__":
     if args.method == 'DAMA':
         hparams_path = os.path.join(HPARAMS_DIR, args.method, model_name, f"{experiment_name}.json")
         hparams = DAMAHyperParams.from_json(hparams_path)
-    elif args.method == 'DAMA_L':
-        hparams_path = os.path.join(HPARAMS_DIR, args.method, f"{model_name}_{str(args.num_layers)}L.json")
-        hparams = DAMALeaceHyperParams.from_json(hparams_path)
+    # elif args.method == 'DAMA_L':
+    #     hparams_path = os.path.join(HPARAMS_DIR, args.method, f"{model_name}_{str(args.num_layers)}L.json")
+    #     hparams = DAMALeaceHyperParams.from_json(hparams_path)
     elif args.method == 'MEMIT':
         hparams_path = os.path.join(HPARAMS_DIR, args.method, f"{model_name}.json")
         hparams = MEMITHyperParams.from_json(hparams_path)
